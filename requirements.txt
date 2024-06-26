@@ -13,3 +13,6 @@ praw
 mysql-connector-python
 nltk
 textblob
+textblob-fr
+transformers
+torch
