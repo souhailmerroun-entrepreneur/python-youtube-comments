@@ -11,3 +11,5 @@ sentry-sdk
 slack_sdk
 praw
 mysql-connector-python
+nltk
+textblob

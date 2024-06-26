@@ -1,45 +1,54 @@
 import json
 from collections import defaultdict
 
-import spacy
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import nltk
+from textblob import TextBlob
 
-# Initialize the sentiment intensity analyzer and spaCy NLP model
-analyzer = SentimentIntensityAnalyzer()
-nlp = spacy.load("en_core_web_sm")
+# Download the necessary NLTK data
+nltk.download("punkt")
 
+# Load comments from the JSON file
+with open("comments.json", "r") as file:
+    comments = json.load(file)
 
-def analyze_comments(file_path):
-    entity_sentiments = defaultdict(list)
+# Names to check
+people = ["Bardella", "Attal", "Bompard"]
 
-    with open(file_path, "r", encoding="utf-8") as file:
-        comments = json.load(file)
-
-        for comment in comments:
-            if comment:
-                # Perform sentiment analysis
-                sentiment = analyzer.polarity_scores(comment)
-                sentiment_score = sentiment["compound"]
-
-                # Perform entity recognition
-                doc = nlp(comment)
-                entities = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
-
-                # Associate sentiment with entities
-                for entity in entities:
-                    entity_sentiments[entity].append(sentiment_score)
-
-                # Print the comment, its sentiment score, and the identified entities
-                print(f"Comment: {comment}")
-                print(f"Sentiment Score: {sentiment_score}")
-                print(f"Entities: {entities}\n")
-
-    # Calculate the average sentiment score for each entity
-    for entity, scores in entity_sentiments.items():
-        average_sentiment = sum(scores) / len(scores) if scores else 0
-        print(f"Entity: {entity}, Average Sentiment Score: {average_sentiment}")
+# Initialize counters for each person
+sentiment_counts = {
+    person: {"positive": 0, "negative": 0, "total": 0} for person in people
+}
 
 
-# Example usage
-file_path = "comments.json"  # Replace with the path to your JSON file
-analyze_comments(file_path)
+# Function to determine sentiment
+def get_sentiment(text):
+    blob = TextBlob(text)
+    return "positive" if blob.sentiment.polarity >= 0 else "negative"
+
+
+# Analyze each comment
+for comment in comments:
+    for person in people:
+        if person.lower() in comment.lower():
+            sentiment = get_sentiment(comment)
+            sentiment_counts[person][sentiment] += 1
+            sentiment_counts[person]["total"] += 1
+            break  # Only count the comment for the first person found
+
+# Calculate percentages
+percentages = {}
+for person, counts in sentiment_counts.items():
+    total = counts["total"]
+    if total > 0:
+        positive_percentage = (counts["positive"] / total) * 100
+        negative_percentage = (counts["negative"] / total) * 100
+        percentages[person] = {
+            "positive_percentage": positive_percentage,
+            "negative_percentage": negative_percentage,
+        }
+
+# Display the results
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
+pp.pprint(percentages)
